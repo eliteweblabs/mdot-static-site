@@ -14,16 +14,34 @@
       content="M-Dot (Michael Januario): Boston MC & producer — new music, Spotify, SoundCloud, Instagram, Facebook, and live dates."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="M-Dot" />
     <meta
       property="og:image"
-      content="https://mdoty.kinsta.cloud/wp-content/themes/yootheme/cache/9d/mdot-no-alpha-9daeb3eb.png"
+      content="images/slide-01-youtube-channel.jpg"
+    />
+    <meta property="og:image:width" content="8192" />
+    <meta property="og:image:height" content="8192" />
+    <meta property="og:image:alt" content="M-Dot official YouTube channel profile photo" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="M-Dot — Boston hip-hop" />
+    <meta
+      name="twitter:description"
+      content="M-Dot (Michael Januario): Boston MC & producer — new music, Spotify, SoundCloud, Instagram, Facebook, and live dates."
+    />
+    <meta
+      name="twitter:image"
+      content="images/slide-01-youtube-channel.jpg"
     />
     <link
       rel="icon"
-      href="https://mdoty.kinsta.cloud/wp-content/uploads/2024/11/cropped-mdot-logo.png"
+      type="image/png"
+      href="images/favicon-mdot.png"
       sizes="any"
     />
-    <link rel="apple-touch-icon" href="https://mdoty.kinsta.cloud/wp-content/uploads/2024/11/cropped-mdot-logo.png" />
+    <link
+      rel="apple-touch-icon"
+      href="images/favicon-mdot.png"
+    />
     <meta name="theme-color" content="#000000" />
     <meta name="color-scheme" content="dark" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
@@ -35,22 +53,6 @@
       referrerpolicy="no-referrer"
     />
     <style>
-      .fullscreen-slideshow .swiper-pagination-fullscreen {
-        bottom: max(4.25rem, calc(env(safe-area-inset-bottom) + 3.5rem));
-      }
-      .m-dot-splash-root[data-m-dot-drawer-open="1"] .fullscreen-slideshow .swiper-pagination-fullscreen {
-        bottom: max(14rem, calc(env(safe-area-inset-bottom) + 12rem));
-      }
-      .fullscreen-slideshow .swiper-pagination-bullet {
-        width: 10px;
-        height: 10px;
-        background: rgba(255, 255, 255, 0.6);
-        opacity: 1;
-      }
-      .fullscreen-slideshow .swiper-pagination-bullet-active {
-        background: white;
-        transform: scale(1.2);
-      }
       .fullscreen-slideshow .swiper-slide img {
         object-fit: cover !important;
         object-position: center;
@@ -82,7 +84,7 @@
         >
           <h1 class="mt-2 flex justify-center">
             <img
-              src="https://mdoty.kinsta.cloud/wp-content/themes/yootheme/cache/9d/mdot-no-alpha-9daeb3eb.png"
+              src="images/logo-wordmark.png"
               alt="M-Dot"
               width="288"
               height="300"
@@ -103,7 +105,7 @@
               <div class="swiper-slide">
                 <div class="relative flex h-full w-full items-center justify-center bg-black">
                   <img
-                    src="https://yt3.googleusercontent.com/Lsqjt5s_uaB7Q9eHA6GJpGQ9ac-Snt-PKBP1Tur9whc-aAFS9cq9Jhnma2oFugMCyVnjsUcMOQ=s8192-c-k-c0x00ffffff-no-rj"
+                    src="images/slide-01-youtube-channel.jpg"
                     alt="M-Dot official YouTube channel profile photo"
                     width="8192"
                     height="8192"
@@ -116,8 +118,10 @@
               <div class="swiper-slide">
                 <div class="relative flex h-full w-full items-center justify-center bg-black">
                   <img
-                    src="https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/e9/c5/f3/e9c5f3f2-ae1f-dc82-d3fa-ee3cc9305def/53432.jpg/1200x1200bb.jpg"
+                    src="images/slide-02-library-of-sound.jpg"
                     alt="Library of Sound album artwork by M-Dot and Confidence"
+                    width="1200"
+                    height="1200"
                     class="h-full w-full object-cover"
                     loading="lazy"
                     decoding="async"
@@ -127,8 +131,10 @@
               <div class="swiper-slide">
                 <div class="relative flex h-full w-full items-center justify-center bg-black">
                   <img
-                    src="https://f4.bcbits.com/img/a3776393657_16.jpg"
+                    src="images/slide-03-ego-and-the-enemy.jpg"
                     alt="egO anD The eneMy album cover by M-Dot"
+                    width="700"
+                    height="700"
                     class="h-full w-full object-cover"
                     loading="lazy"
                     decoding="async"
@@ -137,7 +143,6 @@
               </div>
               <!-- Add more .swiper-slide blocks here when you want more carousel slides. -->
             </div>
-            <div class="swiper-pagination swiper-pagination-fullscreen"></div>
           </div>
         </div>
       </div>
@@ -509,10 +514,6 @@
           if (slideCount > 1) {
             opts.loop = true;
             opts.autoplay = { delay: 6000, disableOnInteraction: false };
-            opts.pagination = {
-              el: root.querySelector(".swiper-pagination-fullscreen"),
-              clickable: true,
-            };
           }
           new Swiper(root, opts);
         }
