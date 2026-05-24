@@ -6,12 +6,12 @@
     <title>M-Dot — Boston hip-hop</title>
     <meta
       name="description"
-      content="M-Dot (Michael Januario): Boston MC & producer — new music, Spotify, SoundCloud, Instagram, and live dates."
+      content="M-Dot (Michael Januario): Boston MC & producer — new music, Spotify, SoundCloud, Instagram, Facebook, and live dates."
     />
     <meta property="og:title" content="M-Dot — Boston hip-hop" />
     <meta
       property="og:description"
-      content="M-Dot (Michael Januario): Boston MC & producer — new music, Spotify, SoundCloud, Instagram, and live dates."
+      content="M-Dot (Michael Januario): Boston MC & producer — new music, Spotify, SoundCloud, Instagram, Facebook, and live dates."
     />
     <meta property="og:type" content="website" />
     <meta
@@ -103,15 +103,28 @@
               <div class="swiper-slide">
                 <div class="relative flex h-full w-full items-center justify-center bg-black">
                   <img
-                    src="https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/e9/c5/f3/e9c5f3f2-ae1f-dc82-d3fa-ee3cc9305def/53432.jpg/1200x1200bb.jpg"
-                    alt="Library of Sound album artwork by M-Dot and Confidence"
+                    src="https://yt3.googleusercontent.com/Lsqjt5s_uaB7Q9eHA6GJpGQ9ac-Snt-PKBP1Tur9whc-aAFS9cq9Jhnma2oFugMCyVnjsUcMOQ=s8192-c-k-c0x00ffffff-no-rj"
+                    alt="M-Dot official YouTube channel profile photo"
+                    width="8192"
+                    height="8192"
                     class="h-full w-full object-cover"
                     loading="eager"
                     fetchpriority="high"
                   />
                 </div>
               </div>
-              <!-- Add more .swiper-slide blocks here when you want a carousel again. -->
+              <div class="swiper-slide">
+                <div class="relative flex h-full w-full items-center justify-center bg-black">
+                  <img
+                    src="https://f4.bcbits.com/img/a3776393657_16.jpg"
+                    alt="egO anD The eneMy album cover by M-Dot"
+                    class="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </div>
+              <!-- Add more .swiper-slide blocks here when you want more carousel slides. -->
             </div>
             <div class="swiper-pagination swiper-pagination-fullscreen"></div>
           </div>
@@ -320,6 +333,45 @@
               </p>
             </div>
 
+            <div class="hidden" data-panel="facebook" role="region" aria-label="Facebook">
+              <p
+                class="mb-2 text-center text-[0.65rem] font-semibold uppercase tracking-widest text-blue-300/90"
+              >
+                Facebook
+              </p>
+              <a
+                href="https://www.facebook.com/MDotBoston/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-3 rounded-xl border border-blue-500/40 bg-blue-950/30 px-4 py-3 transition hover:bg-blue-950/50 active:scale-[0.99]"
+              >
+                <span
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1877F2] text-white"
+                  aria-hidden="true"
+                >
+                  <i class="fa-brands fa-facebook-f text-xl" aria-hidden="true"></i>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-sm font-bold text-white">M-Dot on Facebook</span>
+                  <span class="block text-xs text-white/70">Official page — news, videos &amp; show posts</span>
+                </span>
+                <svg
+                  class="h-5 w-5 shrink-0 text-white/50"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+              <p class="mt-3 text-center text-[0.7rem] leading-snug text-white/50">
+                Like the page so live clips and announcements surface in your feed.
+              </p>
+            </div>
+
             <div class="hidden" data-panel="tour" role="region" aria-label="Tour and events">
               <p
                 class="mb-2 text-center text-[0.65rem] font-semibold uppercase tracking-widest text-amber-200/90"
@@ -355,7 +407,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-5 gap-0.5 px-1 pt-1" role="tablist" aria-label="M-Dot links" data-m-dot-tabs>
+        <div class="grid grid-cols-6 gap-0.5 px-1 pt-1" role="tablist" aria-label="M-Dot links" data-m-dot-tabs>
           <button
             type="button"
             role="tab"
@@ -403,6 +455,18 @@
             aria-label="Instagram"
           >
             <i class="fa-brands fa-instagram m-dot-fa-instagram" aria-hidden="true"></i>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="m-dot-tab flex h-12 items-center justify-center rounded-lg text-[#1877F2] outline-none transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-amber-300/80 data-[active=true]:bg-white/15 data-[active=true]:brightness-110"
+            data-tab="facebook"
+            aria-selected="false"
+            aria-controls="m-dot-drawer"
+            id="tab-facebook"
+            aria-label="Facebook"
+          >
+            <i class="fa-brands fa-facebook-f text-xl" aria-hidden="true"></i>
           </button>
           <button
             type="button"
