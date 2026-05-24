@@ -17,11 +17,14 @@
     <meta property="og:site_name" content="M-Dot" />
     <meta
       property="og:image"
-      content="images/slide-01-youtube-channel.png"
+      content="images/og-slide-01-1200.jpg"
     />
-    <meta property="og:image:width" content="8192" />
-    <meta property="og:image:height" content="8192" />
-    <meta property="og:image:alt" content="M-Dot — slide 1 cutout (transparent PNG)" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="M-Dot — slide 1 cutout (same art as hero; JPEG for social previews)"
+    />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="M-Dot — Boston hip-hop" />
     <meta
@@ -30,7 +33,7 @@
     />
     <meta
       name="twitter:image"
-      content="images/slide-01-youtube-channel.png"
+      content="images/og-slide-01-1200.jpg"
     />
     <link
       rel="icon"
@@ -89,7 +92,7 @@
       id="m-dot-load-audio"
       preload="auto"
       playsinline
-      src="audio/m-dot-load-preview.mp3?v=2"
+      src="audio/m-dot-load-preview.mp3?v=3"
       aria-hidden="true"
     >
       <!-- ~7.5s excerpt: M-Dot — "Dreamscape (Prod. By Marco Polo)" from egO anD The eneMy (Bandcamp). -->
@@ -530,9 +533,11 @@
             speed: 600,
             grabCursor: true,
             keyboard: { enabled: true },
+            /* loop duplicates slides; crawlers and first paint can look like “slide 2 first”. Use rewind instead. */
+            loop: false,
+            rewind: true,
           };
           if (slideCount > 1) {
-            opts.loop = true;
             opts.autoplay = { delay: 6000, disableOnInteraction: false };
           }
           function syncHeroZ(swiper) {
@@ -548,7 +553,26 @@
               syncHeroZ(s);
             },
           };
-          new Swiper(root, opts);
+          var swiper = new Swiper(root, opts);
+
+          /* Hold slide 1 until load sting has fully faded (see m-dot-load-sting-end). Fallback if audio never ends. */
+          if (slideCount > 1 && swiper.autoplay) {
+            swiper.autoplay.stop();
+            var apStarted = false;
+            function startAutoplayAfterSting() {
+              if (apStarted) return;
+              apStarted = true;
+              try {
+                swiper.autoplay.start();
+              } catch (e) {}
+            }
+            window.addEventListener("m-dot-load-sting-end", startAutoplayAfterSting, { once: true });
+            function scheduleFallback() {
+              window.setTimeout(startAutoplayAfterSting, 11000);
+            }
+            if (document.readyState === "complete") scheduleFallback();
+            else window.addEventListener("load", scheduleFallback, false);
+          }
         }
       })();
 
@@ -625,6 +649,15 @@
         var fadeScheduled = false;
         var playbackStarted = false;
 
+        var stingEndEmitted = false;
+        function emitStingEnd() {
+          if (stingEndEmitted) return;
+          stingEndEmitted = true;
+          try {
+            window.dispatchEvent(new CustomEvent("m-dot-load-sting-end"));
+          } catch (e) {}
+        }
+
         function runFade() {
           if (fadeScheduled) return;
           fadeScheduled = true;
@@ -637,6 +670,7 @@
               try {
                 a.pause();
               } catch (e) {}
+              emitStingEnd();
               return;
             }
             a.volume = Math.max(0, base * (1 - dt / fadeDurationMs));
@@ -653,7 +687,9 @@
             p.then(function () {
               playbackStarted = true;
               window.setTimeout(runFade, fadeStartSec * 1000);
-            }).catch(function () {});
+            }).catch(function () {
+              emitStingEnd();
+            });
           } else {
             playbackStarted = true;
             window.setTimeout(runFade, fadeStartSec * 1000);
