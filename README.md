@@ -16,7 +16,7 @@ Then open http://127.0.0.1:8080/
 - [Tailwind CSS](https://tailwindcss.com/) (Play CDN) for utility classes  
 - [Swiper 11](https://swiperjs.com/) (jsDelivr) for the full-screen slideshow  
 - [Font Awesome 6.5](https://fontawesome.com/) (cdnjs) for brand icons (Instagram, Facebook, Spotify, SoundCloud, etc.) — no `npm install` required for deploy  
-- External images: Kinsta wordmark; slideshow first slide is M-Dot’s **YouTube channel avatar** from Google CDN at max size (`=s8192`, 8192×8192); second slide is *egO anD The eneMy* cover (Bandcamp CDN).
+- External images: Kinsta wordmark; slideshow: *Library of Sound* (Apple Music CDN), M-Dot **YouTube channel avatar** at max Google CDN size (`=s8192`), and *egO anD The eneMy* cover (Bandcamp CDN). Slides are not linked.
 - **Dock:** six tabs — Music, Spotify, SoundCloud, Instagram, Facebook, Tour. SoundCloud: [soundcloud.com/mdotboston](https://soundcloud.com/mdotboston). Facebook: [facebook.com/MDotBoston](https://www.facebook.com/MDotBoston/).
 
 ## GitHub
