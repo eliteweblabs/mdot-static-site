@@ -16,7 +16,7 @@ Then open http://127.0.0.1:8080/
 - [Tailwind CSS](https://tailwindcss.com/) (Play CDN) for utility classes  
 - [Swiper 11](https://swiperjs.com/) (jsDelivr) for the full-screen slideshow  
 - [Font Awesome 6.5](https://fontawesome.com/) (cdnjs) for brand icons (Instagram, Spotify, SoundCloud, etc.) — no `npm install` required for deploy  
-- External images: Kinsta wordmark; album art from Apple (Library of Sound) and Bandcamp (egO anD The eneMy cover on the Globe-review slide).
+- External images: Kinsta wordmark; *Library of Sound* artwork (Apple Music CDN) on the hero slide.
 - **Dock:** five tabs — Music, Spotify, SoundCloud, Instagram, Tour. SoundCloud opens [soundcloud.com/mdotboston](https://soundcloud.com/mdotboston) (same handle as Instagram).
 
 ## GitHub
