@@ -644,8 +644,9 @@
         var a = document.getElementById("m-dot-load-audio");
         if (!a) return;
         var peakVol = 0.62;
-        var fadeStartSec = 4.8;
-        var fadeDurationMs = 1600;
+        /* ~7.5s clip: hold level, then a long linear fade so the tail feels intentional. */
+        var fadeStartSec = 2.4;
+        var fadeDurationMs = 5000;
         var fadeScheduled = false;
         var playbackStarted = false;
 
