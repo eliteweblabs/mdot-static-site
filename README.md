@@ -15,6 +15,7 @@ Then open http://127.0.0.1:8080/
 
 - [Tailwind CSS](https://tailwindcss.com/) (Play CDN) for utility classes  
 - [Swiper 11](https://swiperjs.com/) (jsDelivr) for the full-screen slideshow  
+- [Font Awesome 6.5](https://fontawesome.com/) (cdnjs) for brand icons (Instagram, Spotify, etc.) — no `npm install` required for deploy  
 - External images: Kinsta wordmark, album art, YouTube thumbnails  
 
 ## GitHub
