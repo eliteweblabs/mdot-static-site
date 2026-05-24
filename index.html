@@ -645,12 +645,12 @@
         });
       })();
 
-      /* Load sting: short Bandcamp excerpt + volume fade (see README). */
+      /* Load sting: Bandcamp excerpt — fade via Web Audio GainNode when possible (HTMLMediaElement.volume is often ignored on iOS, which sounds like a sudden cut). */
       (function () {
         var a = document.getElementById("m-dot-load-audio");
         if (!a) return;
         var peakVol = 0.62;
-        /* ~7.5s clip: hold level, then a long linear fade so the tail feels intentional. */
+        /* ~7.5s clip: hold level, then a long fade so the tail feels intentional. */
         var fadeStartSec = 2.4;
         var fadeDurationMs = 5000;
         var fadeScheduled = false;
@@ -665,9 +665,62 @@
           } catch (e) {}
         }
 
+        var audioCtx = null;
+        var gainNode = null;
+        var useWebAudioFade = false;
+
+        function ensureWebAudioGraph() {
+          if (gainNode) return;
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          try {
+            audioCtx = new AC();
+            var src = audioCtx.createMediaElementSource(a);
+            gainNode = audioCtx.createGain();
+            src.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            a.volume = 1;
+            gainNode.gain.value = peakVol;
+            useWebAudioFade = true;
+          } catch (e) {
+            audioCtx = null;
+            gainNode = null;
+            useWebAudioFade = false;
+          }
+        }
+
+        function resumeAudioCtx() {
+          if (audioCtx && audioCtx.state === "suspended") {
+            audioCtx.resume().catch(function () {});
+          }
+        }
+
         function runFade() {
           if (fadeScheduled) return;
           fadeScheduled = true;
+          resumeAudioCtx();
+
+          if (useWebAudioFade && gainNode && audioCtx) {
+            var durSec = fadeDurationMs / 1000;
+            var now = audioCtx.currentTime;
+            var g = gainNode.gain;
+            g.cancelScheduledValues(now);
+            var startVal = Math.max(0.0001, g.value);
+            g.setValueAtTime(startVal, now);
+            /* Exponential ramp — smoother perceived tail than stepping HTML volume. */
+            g.exponentialRampToValueAtTime(0.0001, now + durSec);
+            window.setTimeout(function () {
+              try {
+                a.pause();
+              } catch (e2) {}
+              try {
+                g.setValueAtTime(0.0001, audioCtx.currentTime);
+              } catch (e3) {}
+              emitStingEnd();
+            }, fadeDurationMs + 80);
+            return;
+          }
+
           var base = a.volume;
           var t0 = performance.now();
           function tick() {
@@ -676,7 +729,7 @@
               a.volume = 0;
               try {
                 a.pause();
-              } catch (e) {}
+              } catch (e4) {}
               emitStingEnd();
               return;
             }
@@ -688,22 +741,30 @@
 
         function tryPlay() {
           if (playbackStarted) return;
-          a.volume = peakVol;
+          ensureWebAudioGraph();
+          resumeAudioCtx();
+          if (!useWebAudioFade) {
+            a.volume = peakVol;
+          }
           var p = a.play();
           if (p && typeof p.then === "function") {
             p.then(function () {
               playbackStarted = true;
+              resumeAudioCtx();
               window.setTimeout(runFade, fadeStartSec * 1000);
             }).catch(function () {
               emitStingEnd();
             });
           } else {
             playbackStarted = true;
+            resumeAudioCtx();
             window.setTimeout(runFade, fadeStartSec * 1000);
           }
         }
 
         window.addEventListener("load", tryPlay, false);
+        /* iOS: AudioContext starts suspended — resume on any tap even if tryPlay already ran. */
+        document.addEventListener("pointerdown", resumeAudioCtx, { capture: true, passive: true });
         document.addEventListener("pointerdown", tryPlay, { capture: true, once: true });
       })();
     </script>
