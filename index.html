@@ -244,7 +244,7 @@
 
             <div class="hidden" data-panel="instagram" role="region" aria-label="Instagram">
               <p
-                class="mb-2 text-center text-[0.65rem] font-semibold uppercase tracking-widest text-pink-300/90"
+                class="mb-2 text-center text-[0.65rem] font-semibold uppercase tracking-widest text-white/90"
               >
                 Instagram
               </p>
@@ -254,7 +254,7 @@
                     href="https://www.instagram.com/mdotboston/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="flex flex-col rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-left transition hover:border-pink-400/40 hover:bg-white/10 active:scale-[0.99]"
+                    class="flex flex-col rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-left transition hover:border-white/35 hover:bg-white/10 active:scale-[0.99]"
                     ><span class="text-sm font-semibold text-white">Follow @mdotboston</span
                     ><span class="text-xs text-white/60">Official Instagram profile</span></a
                   >
@@ -264,7 +264,7 @@
                     href="https://www.instagram.com/explore/tags/mdotboston/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="flex flex-col rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-left transition hover:border-pink-400/40 hover:bg-white/10 active:scale-[0.99]"
+                    class="flex flex-col rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-left transition hover:border-white/35 hover:bg-white/10 active:scale-[0.99]"
                     ><span class="text-sm font-semibold text-white">#mdotboston</span
                     ><span class="text-xs text-white/60">Community posts &amp; clips</span></a
                   >
@@ -359,25 +359,31 @@
           <button
             type="button"
             role="tab"
-            class="m-dot-tab flex flex-col items-center justify-center gap-0.5 rounded-lg py-2 text-[0.62rem] font-semibold uppercase tracking-wide text-white/75 outline-none transition hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-amber-300/80 data-[active=true]:bg-white/15 data-[active=true]:text-pink-300"
+            class="m-dot-tab flex flex-col items-center justify-center gap-0.5 rounded-lg py-2 text-[0.62rem] font-semibold uppercase tracking-wide text-white/75 outline-none transition hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-amber-300/80 data-[active=true]:bg-white/15 data-[active=true]:text-white"
             data-tab="instagram"
             aria-selected="false"
             aria-controls="m-dot-drawer"
             id="tab-instagram"
           >
             <svg
-              class="h-6 w-6 text-pink-300"
+              class="h-6 w-6 shrink-0"
               viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
               aria-hidden="true"
+              focusable="false"
             >
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              <defs>
+                <linearGradient id="ig-brand-tab" x1="0" y1="24" x2="24" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#FFDC80" />
+                  <stop offset="0.2" stop-color="#FCAF45" />
+                  <stop offset="0.4" stop-color="#F77737" />
+                  <stop offset="0.6" stop-color="#E1306C" />
+                  <stop offset="0.85" stop-color="#C13584" />
+                  <stop offset="1" stop-color="#833AB4" />
+                </linearGradient>
+              </defs>
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" fill="url(#ig-brand-tab)" />
+              <circle cx="12" cy="12" r="4.25" fill="none" stroke="#fff" stroke-width="1.65" />
+              <circle cx="17.15" cy="6.85" r="1.2" fill="#fff" />
             </svg>
             <span class="leading-tight">IG</span>
           </button>
