@@ -17,11 +17,11 @@
     <meta property="og:site_name" content="M-Dot" />
     <meta
       property="og:image"
-      content="images/slide-01-youtube-channel.jpg"
+      content="images/slide-01-youtube-channel.png"
     />
     <meta property="og:image:width" content="8192" />
     <meta property="og:image:height" content="8192" />
-    <meta property="og:image:alt" content="M-Dot official YouTube channel profile photo" />
+    <meta property="og:image:alt" content="M-Dot — slide 1 cutout (transparent PNG)" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="M-Dot — Boston hip-hop" />
     <meta
@@ -30,7 +30,7 @@
     />
     <meta
       name="twitter:image"
-      content="images/slide-01-youtube-channel.jpg"
+      content="images/slide-01-youtube-channel.png"
     />
     <link
       rel="icon"
@@ -53,6 +53,14 @@
       referrerpolicy="no-referrer"
     />
     <style>
+      /*
+        Per-slide stack inside Swiper: style="--m-dot-z: N" on each .swiper-slide (higher = in front of other slides).
+        Slide 1 inner uses bg-transparent for the PNG cutout. JS raises #m-dot-slideshow inline z-index to 25 only while
+        slide 1 is active (above logo z-20); other slides clear it so the logo stays on top of opaque art.
+      */
+      .fullscreen-slideshow .swiper-slide {
+        z-index: var(--m-dot-z, 1) !important;
+      }
       .fullscreen-slideshow .swiper-slide img {
         object-fit: cover !important;
         object-position: center;
@@ -81,10 +89,10 @@
       id="m-dot-load-audio"
       preload="auto"
       playsinline
-      src="audio/m-dot-load-preview.mp3"
+      src="audio/m-dot-load-preview.mp3?v=2"
       aria-hidden="true"
     >
-      <!-- ~4s excerpt: M-Dot — "Intro (Prod. By KAN)" from egO anD The eneMy (Bandcamp). -->
+      <!-- ~7.5s excerpt: M-Dot — "Dreamscape (Prod. By Marco Polo)" from egO anD The eneMy (Bandcamp). -->
     </audio>
 
     <div class="flex h-dvh flex-col overflow-hidden">
@@ -92,13 +100,13 @@
         <div
           class="pointer-events-none absolute inset-x-0 top-0 z-20 bg-gradient-to-b from-black/85 via-black/35 to-transparent px-4 pb-16 pt-[max(0.75rem,env(safe-area-inset-top))] text-center"
         >
-          <h1 class="mt-2 flex justify-center">
+          <h1 class="mt-2 flex shrink-0 justify-center">
             <img
               src="images/logo-wordmark.png"
               alt="M-Dot"
               width="288"
               height="300"
-              class="h-auto max-h-[min(28vh,9.5rem)] w-auto max-w-[min(78vw,17rem)] object-contain drop-shadow-[0_6px_28px_rgba(0,0,0,0.9)]"
+              class="h-auto max-h-[9.5rem] w-auto max-w-[17rem] shrink-0 object-contain drop-shadow-[0_6px_28px_rgba(0,0,0,0.9)]"
               loading="eager"
               decoding="async"
               fetchpriority="high"
@@ -112,11 +120,12 @@
         >
           <div class="swiper swiper-fullscreen h-full w-full">
             <div class="swiper-wrapper">
-              <div class="swiper-slide">
-                <div class="relative flex h-full w-full items-center justify-center bg-black">
+              <!-- Slide 1: transparent PNG; while this slide is active, #m-dot-slideshow gets z-index 25 (above logo z-20). -->
+              <div class="swiper-slide" style="--m-dot-z: 8">
+                <div class="relative flex h-full w-full items-center justify-center bg-transparent">
                   <img
-                    src="images/slide-01-youtube-channel.jpg"
-                    alt="M-Dot official YouTube channel profile photo"
+                    src="images/slide-01-youtube-channel.png"
+                    alt="M-Dot — cutout over hero (slide 1, transparent PNG)"
                     width="8192"
                     height="8192"
                     class="h-full w-full object-cover"
@@ -125,7 +134,7 @@
                   />
                 </div>
               </div>
-              <div class="swiper-slide">
+              <div class="swiper-slide" style="--m-dot-z: 2">
                 <div class="relative flex h-full w-full items-center justify-center bg-black">
                   <img
                     src="images/slide-02-library-of-sound.jpg"
@@ -138,7 +147,7 @@
                   />
                 </div>
               </div>
-              <div class="swiper-slide">
+              <div class="swiper-slide" style="--m-dot-z: 2">
                 <div class="relative flex h-full w-full items-center justify-center bg-black">
                   <img
                     src="images/slide-03-ego-and-the-enemy.jpg"
@@ -514,6 +523,7 @@
     <script>
       (function () {
         var root = document.querySelector(".swiper-fullscreen");
+        var hero = document.getElementById("m-dot-slideshow");
         if (root && typeof Swiper !== "undefined") {
           var slideCount = root.querySelectorAll(".swiper-slide").length;
           var opts = {
@@ -525,6 +535,19 @@
             opts.loop = true;
             opts.autoplay = { delay: 6000, disableOnInteraction: false };
           }
+          function syncHeroZ(swiper) {
+            if (!hero) return;
+            /* Logo bar is z-20; dock is z-30. Only slide 1 sits above the logo so the PNG can overlap it. */
+            hero.style.zIndex = swiper.realIndex === 0 ? "25" : "";
+          }
+          opts.on = {
+            init: function (s) {
+              syncHeroZ(s);
+            },
+            slideChange: function (s) {
+              syncHeroZ(s);
+            },
+          };
           new Swiper(root, opts);
         }
       })();
@@ -596,9 +619,9 @@
       (function () {
         var a = document.getElementById("m-dot-load-audio");
         if (!a) return;
-        var peakVol = 0.55;
-        var fadeStartSec = 2.0;
-        var fadeDurationMs = 900;
+        var peakVol = 0.62;
+        var fadeStartSec = 4.8;
+        var fadeDurationMs = 1600;
         var fadeScheduled = false;
         var playbackStarted = false;
 
