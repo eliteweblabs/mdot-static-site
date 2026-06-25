@@ -96,12 +96,12 @@
 
     <audio
       id="m-dot-load-audio"
-      preload="auto"
+      preload="none"
       playsinline
-      src="audio/m-dot-load-preview.mp3?v=3"
+      data-src="audio/m-dot-load-preview.mp3?v=4"
       aria-hidden="true"
     >
-      <!-- ~7.5s excerpt: M-Dot — "Dreamscape (Prod. By Marco Polo)" from egO anD The eneMy (Bandcamp). -->
+      <!-- ~12.5s excerpt: M-Dot — "Dreamscape (Prod. By Marco Polo)" from egO anD The eneMy (Bandcamp). -->
     </audio>
 
     <div class="flex h-dvh flex-col overflow-hidden">
@@ -574,7 +574,7 @@
             }
             window.addEventListener("m-dot-load-sting-end", startAutoplayAfterSting, { once: true });
             function scheduleFallback() {
-              window.setTimeout(startAutoplayAfterSting, 11000);
+              window.setTimeout(startAutoplayAfterSting, 17000);
             }
             if (document.readyState === "complete") scheduleFallback();
             else window.addEventListener("load", scheduleFallback, false);
@@ -645,16 +645,41 @@
         });
       })();
 
-      /* Load sting: Bandcamp excerpt — fade via Web Audio GainNode when possible (HTMLMediaElement.volume is often ignored on iOS, which sounds like a sudden cut). */
+      /* Load sting: Bandcamp excerpt — fade via Web Audio GainNode when possible (HTMLMediaElement.volume is often ignored on iOS, which sounds like a sudden cut). Deferred until critical images + idle; skipped on save-data / slow links. */
       (function () {
         var a = document.getElementById("m-dot-load-audio");
         if (!a) return;
         var peakVol = 0.62;
-        /* ~7.5s clip: hold level, then a long fade so the tail feels intentional. */
-        var fadeStartSec = 2.4;
+        /* ~12.5s clip: more play time, then 5s fade before the file ends. */
+        var fadeStartSec = 7.35;
         var fadeDurationMs = 5000;
         var fadeScheduled = false;
         var playbackStarted = false;
+        var audioEnabled = true;
+        var audioAttached = false;
+        var playbackQueued = false;
+        var deferTimer = null;
+        var AUDIO_SRC = a.getAttribute("data-src") || a.getAttribute("src") || "";
+
+        function connectionAllowsAudio() {
+          var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+          if (!conn) return true;
+          if (conn.saveData) return false;
+          var type = conn.effectiveType;
+          if (type === "slow-2g" || type === "2g") return false;
+          if (typeof conn.downlink === "number" && conn.downlink > 0 && conn.downlink < 0.5) return false;
+          return true;
+        }
+
+        if (!connectionAllowsAudio() || !AUDIO_SRC) {
+          audioEnabled = false;
+          window.setTimeout(function () {
+            try {
+              window.dispatchEvent(new CustomEvent("m-dot-load-sting-end"));
+            } catch (e) {}
+          }, 0);
+          return;
+        }
 
         var stingEndEmitted = false;
         function emitStingEnd() {
@@ -739,6 +764,102 @@
           requestAnimationFrame(tick);
         }
 
+        function attachAudioSource(cb) {
+          if (audioAttached) {
+            if (cb) cb();
+            return;
+          }
+          audioAttached = true;
+          a.src = AUDIO_SRC;
+          a.load();
+          var attachCbDone = false;
+          function finishAttach() {
+            if (attachCbDone) return;
+            attachCbDone = true;
+            a.removeEventListener("canplaythrough", finishAttach);
+            a.removeEventListener("canplay", finishAttach);
+            a.removeEventListener("error", onAttachError);
+            if (cb) cb();
+          }
+          function onAttachError() {
+            if (attachCbDone) return;
+            attachCbDone = true;
+            a.removeEventListener("canplaythrough", finishAttach);
+            a.removeEventListener("canplay", finishAttach);
+            a.removeEventListener("error", onAttachError);
+            emitStingEnd();
+          }
+          if (a.readyState >= 3) {
+            finishAttach();
+            return;
+          }
+          a.addEventListener("canplaythrough", finishAttach, { once: true });
+          a.addEventListener("canplay", finishAttach, { once: true });
+          a.addEventListener("error", onAttachError, { once: true });
+          window.setTimeout(function () {
+            if (a.readyState >= 2) finishAttach();
+          }, 8000);
+        }
+
+        function beginPlayback() {
+          if (!audioEnabled || playbackStarted) return;
+          attachAudioSource(tryPlay);
+        }
+
+        function clearDeferTimer() {
+          if (deferTimer) {
+            window.clearTimeout(deferTimer);
+            deferTimer = null;
+          }
+        }
+
+        function schedulePlaybackStart(immediate) {
+          if (!audioEnabled) return;
+          if (immediate) {
+            clearDeferTimer();
+            beginPlayback();
+            return;
+          }
+          if (playbackQueued) return;
+          playbackQueued = true;
+
+          function afterCriticalAssets() {
+            var ric = window.requestIdleCallback;
+            if (ric) {
+              ric(
+                function () {
+                  deferTimer = window.setTimeout(beginPlayback, 400);
+                },
+                { timeout: 2500 }
+              );
+            } else {
+              deferTimer = window.setTimeout(beginPlayback, 1200);
+            }
+          }
+
+          function whenPageReady() {
+            var criticalImgs = document.querySelectorAll(
+              'img[fetchpriority="high"], img[loading="eager"]'
+            );
+            var waiting = [];
+            criticalImgs.forEach(function (img) {
+              if (!img.complete) {
+                waiting.push(
+                  new Promise(function (resolve) {
+                    img.addEventListener("load", resolve, { once: true, passive: true });
+                    img.addEventListener("error", resolve, { once: true, passive: true });
+                  })
+                );
+              }
+            });
+            if (waiting.length) Promise.all(waiting).then(afterCriticalAssets);
+            else afterCriticalAssets();
+          }
+
+          if (document.readyState === "complete") whenPageReady();
+          else window.addEventListener("load", whenPageReady, { once: true });
+        }
+
         function tryPlay() {
           if (playbackStarted) return;
           ensureWebAudioGraph();
@@ -762,10 +883,16 @@
           }
         }
 
-        window.addEventListener("load", tryPlay, false);
+        schedulePlaybackStart(false);
         /* iOS: AudioContext starts suspended — resume on any tap even if tryPlay already ran. */
         document.addEventListener("pointerdown", resumeAudioCtx, { capture: true, passive: true });
-        document.addEventListener("pointerdown", tryPlay, { capture: true, once: true });
+        document.addEventListener(
+          "pointerdown",
+          function () {
+            schedulePlaybackStart(true);
+          },
+          { capture: true, once: true }
+        );
       })();
     </script>
   </body>
