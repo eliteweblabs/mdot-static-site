@@ -85,6 +85,12 @@
         color: transparent !important;
         -webkit-text-fill-color: transparent;
       }
+      .m-dot-drawer.m-dot-drawer-dragging {
+        transition: none !important;
+      }
+      .m-dot-drawer-handle {
+        touch-action: none;
+      }
     </style>
   </head>
   <body class="m-dot-splash-root h-dvh overflow-hidden antialiased">
@@ -183,10 +189,17 @@
       >
         <div
           id="m-dot-drawer"
-          class="m-dot-drawer pointer-events-none max-h-0 overflow-hidden opacity-0 transition-[max-height,opacity] duration-300 ease-out"
+          class="m-dot-drawer pointer-events-none max-h-0 overflow-hidden opacity-0 transition-[max-height,opacity,transform] duration-300 ease-out will-change-transform"
           data-m-dot-drawer
           aria-hidden="true"
         >
+          <div
+            class="m-dot-drawer-handle flex shrink-0 cursor-grab flex-col items-center px-3 pb-1 pt-2 active:cursor-grabbing"
+            data-m-dot-drawer-handle
+            aria-hidden="true"
+          >
+            <span class="block h-1 w-10 rounded-full bg-white/35"></span>
+          </div>
           <div
             class="max-h-[min(42vh,22rem)] overflow-y-auto overscroll-contain border-b border-white/10 px-3 py-3"
             data-m-dot-drawer-scroll
@@ -591,10 +604,52 @@
         if (!dock || !drawer || !tabs.length) return;
 
         var openId = null;
+        var dragState = null;
 
-        function setOpen(id) {
+        function clearDrawerMotionStyles() {
+          drawer.style.transition = "";
+          drawer.style.transform = "";
+          drawer.style.opacity = "";
+          drawer.classList.remove("m-dot-drawer-dragging");
+          if (scrollBox) scrollBox.style.overflow = "";
+        }
+
+        function drawerHeight() {
+          return drawer.getBoundingClientRect().height || 0;
+        }
+
+        function setDrawerDragOffset(offsetY) {
+          drawer.classList.add("m-dot-drawer-dragging");
+          drawer.style.transform = offsetY > 0 ? "translateY(" + offsetY + "px)" : "";
+          var h = drawerHeight() || 1;
+          var fade = Math.min(1, offsetY / h);
+          drawer.style.opacity = String(Math.max(0.35, 1 - fade * 0.55));
+        }
+
+        function snapDrawerBack() {
+          drawer.style.transition = "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease-out";
+          drawer.style.transform = "";
+          drawer.style.opacity = "";
+          window.setTimeout(function () {
+            if (openId) clearDrawerMotionStyles();
+          }, 330);
+        }
+
+        function dismissDrawerFromDrag(fromOffset) {
+          var h = drawerHeight() || 220;
+          drawer.style.transition = "transform 0.26s ease-in, opacity 0.22s ease-in";
+          drawer.style.transform = "translateY(" + Math.max(h, fromOffset) + "px)";
+          drawer.style.opacity = "0";
+          window.setTimeout(function () {
+            setOpen(null, { afterDragDismiss: true });
+          }, 260);
+        }
+
+        function setOpen(id, options) {
+          options = options || {};
           var next = openId === id ? null : id;
           openId = next;
+          if (!options.afterDragDismiss) clearDrawerMotionStyles();
 
           tabs.forEach(function (btn) {
             var tid = btn.getAttribute("data-tab");
@@ -623,6 +678,7 @@
           }
 
           document.body.setAttribute("data-m-dot-drawer-open", openId ? "1" : "0");
+          if (options.afterDragDismiss) clearDrawerMotionStyles();
         }
 
         dock.addEventListener(
@@ -643,6 +699,87 @@
         document.addEventListener("keydown", function (e) {
           if (e.key === "Escape") setOpen(null);
         });
+
+        drawer.addEventListener(
+          "pointerdown",
+          function (e) {
+            if (!openId || dragState) return;
+            var handle = e.target.closest("[data-m-dot-drawer-handle]");
+            var inScroll = scrollBox && scrollBox.contains(e.target);
+            if (!handle && !(inScroll && scrollBox.scrollTop <= 0)) return;
+
+            dragState = {
+              pointerId: e.pointerId,
+              startY: e.clientY,
+              startX: e.clientX,
+              lastY: e.clientY,
+              lastT: performance.now(),
+              velocity: 0,
+              offsetY: 0,
+              active: false,
+              fromHandle: !!handle,
+            };
+          },
+          { passive: true }
+        );
+
+        drawer.addEventListener(
+          "pointermove",
+          function (e) {
+            if (!dragState || e.pointerId !== dragState.pointerId) return;
+            var dy = e.clientY - dragState.startY;
+            var dx = e.clientX - dragState.startX;
+
+            if (!dragState.active) {
+              if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+              if (dy <= 0) return;
+              if (!dragState.fromHandle && scrollBox && scrollBox.scrollTop > 0) {
+                dragState = null;
+                return;
+              }
+              dragState.active = true;
+              try {
+                drawer.setPointerCapture(e.pointerId);
+              } catch (err) {}
+              if (scrollBox) scrollBox.style.overflow = "hidden";
+            }
+
+            if (dy > 0) {
+              e.preventDefault();
+              dragState.offsetY = dy;
+              var now = performance.now();
+              var dt = now - dragState.lastT;
+              if (dt > 0) {
+                dragState.velocity = (e.clientY - dragState.lastY) / dt;
+              }
+              dragState.lastY = e.clientY;
+              dragState.lastT = now;
+              setDrawerDragOffset(dy);
+            }
+          },
+          { passive: false }
+        );
+
+        function finishDrawerDrag(e) {
+          if (!dragState || e.pointerId !== dragState.pointerId) return;
+          try {
+            drawer.releasePointerCapture(e.pointerId);
+          } catch (err2) {}
+
+          if (scrollBox) scrollBox.style.overflow = "";
+
+          if (dragState.active) {
+            var h = drawerHeight() || 200;
+            var shouldDismiss = dragState.offsetY > h * 0.28 || dragState.velocity > 0.65;
+            if (shouldDismiss) dismissDrawerFromDrag(dragState.offsetY);
+            else snapDrawerBack();
+          }
+
+          dragState = null;
+        }
+
+        drawer.addEventListener("pointerup", finishDrawerDrag);
+        drawer.addEventListener("pointercancel", finishDrawerDrag);
       })();
 
       /* Load sting: Bandcamp excerpt — fade via Web Audio GainNode when possible (HTMLMediaElement.volume is often ignored on iOS, which sounds like a sudden cut). Deferred until critical images + idle; skipped on save-data / slow links. */
