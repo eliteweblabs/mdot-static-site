@@ -794,7 +794,7 @@
         drawer.addEventListener("pointercancel", finishDrawerDrag);
       })();
 
-      /* Load sting: Bandcamp excerpt — fade via Web Audio GainNode when possible (HTMLMediaElement.volume is often ignored on iOS, which sounds like a sudden cut). Starts on first paint so it does not wait behind the hero image; skipped on save-data / slow links. */
+      /* Load sting: Bandcamp excerpt — fade via Web Audio GainNode when possible (HTMLMediaElement.volume is often ignored on iOS, which sounds like a sudden cut). The clip is fetched immediately so it does not wait behind the hero image; skipped on save-data / slow links. */
       (function () {
         var a = document.getElementById("m-dot-load-audio");
         if (!a) return;
@@ -807,6 +807,7 @@
         var audioEnabled = true;
         var audioAttached = false;
         var playbackQueued = false;
+        var gestureArmed = false;
         var AUDIO_SRC = a.getAttribute("data-src") || a.getAttribute("src") || "";
 
         function connectionAllowsAudio() {
@@ -841,9 +842,17 @@
         var audioCtx = null;
         var gainNode = null;
         var useWebAudioFade = false;
+        var webAudioTried = false;
 
+        /*
+          iOS only routes a MediaElementSource to the speakers when its AudioContext was created
+          inside a user gesture, and capturing an element is permanent. Building the graph on a
+          blocked autoplay attempt therefore mutes the sting for the rest of the page life, so this
+          is only ever called from a gesture handler and never once audio is already audible.
+        */
         function ensureWebAudioGraph() {
-          if (gainNode) return;
+          if (webAudioTried || playbackStarted) return;
+          webAudioTried = true;
           var AC = window.AudioContext || window.webkitAudioContext;
           if (!AC) return;
           try {
@@ -863,9 +872,11 @@
         }
 
         function resumeAudioCtx() {
-          if (audioCtx && audioCtx.state === "suspended") {
-            audioCtx.resume().catch(function () {});
-          }
+          if (!audioCtx || audioCtx.state !== "suspended") return;
+          try {
+            var r = audioCtx.resume();
+            if (r && typeof r.catch === "function") r.catch(function () {});
+          } catch (e) {}
         }
 
         function runFade() {
@@ -912,26 +923,10 @@
           requestAnimationFrame(tick);
         }
 
-        function preloadAudio() {
-          try {
-            var link = document.createElement("link");
-            link.rel = "preload";
-            link.as = "audio";
-            link.href = AUDIO_SRC;
-            if ("fetchPriority" in link) link.fetchPriority = "high";
-            document.head.appendChild(link);
-          } catch (e) {}
-        }
-
-        function attachAudioSource(cb) {
-          if (audioAttached) {
-            if (cb) cb();
-            return;
-          }
+        /* Start the 74KB fetch right away; playback still waits for whatever unlocks it. */
+        function primeAudio() {
+          if (audioAttached) return;
           audioAttached = true;
-          a.preload = "auto";
-          a.src = AUDIO_SRC;
-          a.load();
           a.addEventListener(
             "error",
             function () {
@@ -939,13 +934,36 @@
             },
             { once: true }
           );
-          /* Play as soon as a frame can start — do not wait for canplaythrough of the whole clip. */
-          if (cb) cb();
+          try {
+            a.preload = "auto";
+            a.src = AUDIO_SRC;
+            a.load();
+          } catch (e) {}
         }
 
-        function beginPlayback() {
-          if (!audioEnabled || playbackStarted) return;
-          attachAudioSource(tryPlay);
+        /*
+          Recovery for the case above: if the context refuses to leave "suspended" the captured
+          element is silent forever, so hand playback to an uncaptured clone and fade with volume.
+        */
+        function swapToUncapturedElement() {
+          if (!useWebAudioFade || !a.parentNode) return;
+          try {
+            var fresh = a.cloneNode(false);
+            fresh.removeAttribute("id");
+            fresh.preload = "auto";
+            fresh.src = AUDIO_SRC;
+            a.parentNode.insertBefore(fresh, a);
+            try {
+              a.pause();
+            } catch (e) {}
+            a = fresh;
+            useWebAudioFade = false;
+            gainNode = null;
+            a.volume = peakVol;
+            a.load();
+            var p = a.play();
+            if (p && typeof p.catch === "function") p.catch(function () {});
+          } catch (e2) {}
         }
 
         function afterFirstPaint(cb) {
@@ -983,52 +1001,75 @@
           });
         }
 
-        function schedulePlaybackStart(immediate) {
-          if (!audioEnabled) return;
-          if (immediate) {
-            beginPlayback();
+        function schedulePlaybackStart() {
+          if (!audioEnabled || playbackQueued) return;
+          playbackQueued = true;
+          primeAudio();
+          afterFirstPaint(function () {
+            tryPlay(false);
+          });
+        }
+
+        var GESTURES = ["pointerdown", "touchend", "mousedown", "keydown"];
+
+        function armGesturePlayback() {
+          if (gestureArmed || playbackStarted) return;
+          gestureArmed = true;
+          function onGesture() {
+            for (var i = 0; i < GESTURES.length; i++) {
+              document.removeEventListener(GESTURES[i], onGesture, true);
+            }
+            /* Let a later tap try again if this one lands before the clip can start. */
+            gestureArmed = false;
+            tryPlay(true);
+          }
+          for (var j = 0; j < GESTURES.length; j++) {
+            document.addEventListener(GESTURES[j], onGesture, { capture: true, passive: true });
+          }
+        }
+
+        function onPlaying() {
+          if (playbackStarted) return;
+          playbackStarted = true;
+          resumeAudioCtx();
+          if (useWebAudioFade) {
+            window.setTimeout(function () {
+              if (audioCtx && audioCtx.state !== "running") swapToUncapturedElement();
+            }, 400);
+          }
+          window.setTimeout(runFade, fadeStartSec * 1000);
+        }
+
+        function tryPlay(fromGesture) {
+          if (!audioEnabled || playbackStarted) return;
+          primeAudio();
+          if (fromGesture) {
+            ensureWebAudioGraph();
+            resumeAudioCtx();
+          }
+          if (!useWebAudioFade) {
+            try {
+              a.volume = peakVol;
+            } catch (e) {}
+          }
+          var p;
+          try {
+            p = a.play();
+          } catch (e2) {
+            armGesturePlayback();
             return;
           }
-          if (playbackQueued) return;
-          playbackQueued = true;
-          /* Start the 74KB fetch now so it is ready when first paint commits. */
-          preloadAudio();
-          afterFirstPaint(beginPlayback);
-        }
-
-        function tryPlay() {
-          if (playbackStarted) return;
-          ensureWebAudioGraph();
-          resumeAudioCtx();
-          if (!useWebAudioFade) {
-            a.volume = peakVol;
-          }
-          var p = a.play();
           if (p && typeof p.then === "function") {
-            p.then(function () {
-              playbackStarted = true;
-              resumeAudioCtx();
-              window.setTimeout(runFade, fadeStartSec * 1000);
-            }).catch(function () {
-              emitStingEnd();
-            });
+            /* Blocked autoplay is expected on iOS — wait for a tap rather than burning the sting. */
+            p.then(onPlaying).catch(armGesturePlayback);
           } else {
-            playbackStarted = true;
-            resumeAudioCtx();
-            window.setTimeout(runFade, fadeStartSec * 1000);
+            onPlaying();
           }
         }
 
-        schedulePlaybackStart(false);
-        /* iOS: AudioContext starts suspended — resume on any tap even if tryPlay already ran. */
+        schedulePlaybackStart();
+        armGesturePlayback();
         document.addEventListener("pointerdown", resumeAudioCtx, { capture: true, passive: true });
-        document.addEventListener(
-          "pointerdown",
-          function () {
-            schedulePlaybackStart(true);
-          },
-          { capture: true, once: true }
-        );
       })();
     </script>
   </body>
