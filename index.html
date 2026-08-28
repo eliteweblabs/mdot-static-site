@@ -64,7 +64,7 @@
     <style>
       /*
         Per-slide stack inside Swiper: style="--m-dot-z: N" on each .swiper-slide (higher = in front of other slides).
-        Slide 1 inner uses bg-transparent for the PNG cutout. JS raises #m-dot-slideshow inline z-index to 25 only while
+        Slide 1 inner uses bg-transparent for the cutout. JS raises #m-dot-slideshow inline z-index to 25 only while
         slide 1 is active (above logo z-20); other slides clear it so the logo stays on top of opaque art.
       */
       .fullscreen-slideshow .swiper-slide {
@@ -135,17 +135,20 @@
         >
           <div class="swiper swiper-fullscreen h-full w-full">
             <div class="swiper-wrapper">
-              <!-- Slide 1: transparent PNG; while this slide is active, #m-dot-slideshow gets z-index 25 (above logo z-20). -->
+              <!-- Slide 1: transparent WebP cutout; while this slide is active, #m-dot-slideshow gets z-index 25 (above logo z-20). -->
               <div class="swiper-slide" style="--m-dot-z: 8">
                 <div class="relative flex h-full w-full items-center justify-center bg-transparent">
                   <img
-                    src="images/slide-01-youtube-channel.png"
-                    alt="M-Dot — cutout over hero (slide 1, transparent PNG)"
-                    width="8192"
-                    height="8192"
+                    src="images/slide-01-youtube-channel.webp"
+                    srcset="images/slide-01-youtube-channel-1280.webp 1280w, images/slide-01-youtube-channel.webp 2048w, images/slide-01-youtube-channel-2560.webp 2560w"
+                    sizes="100vw"
+                    alt="M-Dot — cutout over hero (slide 1)"
+                    width="2048"
+                    height="2048"
                     class="h-full w-full object-cover"
                     loading="eager"
                     fetchpriority="high"
+                    decoding="async"
                   />
                 </div>
               </div>
@@ -791,7 +794,7 @@
         drawer.addEventListener("pointercancel", finishDrawerDrag);
       })();
 
-      /* Load sting: Bandcamp excerpt — fade via Web Audio GainNode when possible (HTMLMediaElement.volume is often ignored on iOS, which sounds like a sudden cut). Deferred until critical images + idle; skipped on save-data / slow links. */
+      /* Load sting: Bandcamp excerpt — fade via Web Audio GainNode when possible (HTMLMediaElement.volume is often ignored on iOS, which sounds like a sudden cut). Starts on first paint so it does not wait behind the hero image; skipped on save-data / slow links. */
       (function () {
         var a = document.getElementById("m-dot-load-audio");
         if (!a) return;
@@ -804,7 +807,6 @@
         var audioEnabled = true;
         var audioAttached = false;
         var playbackQueued = false;
-        var deferTimer = null;
         var AUDIO_SRC = a.getAttribute("data-src") || a.getAttribute("src") || "";
 
         function connectionAllowsAudio() {
@@ -910,41 +912,35 @@
           requestAnimationFrame(tick);
         }
 
+        function preloadAudio() {
+          try {
+            var link = document.createElement("link");
+            link.rel = "preload";
+            link.as = "audio";
+            link.href = AUDIO_SRC;
+            if ("fetchPriority" in link) link.fetchPriority = "high";
+            document.head.appendChild(link);
+          } catch (e) {}
+        }
+
         function attachAudioSource(cb) {
           if (audioAttached) {
             if (cb) cb();
             return;
           }
           audioAttached = true;
+          a.preload = "auto";
           a.src = AUDIO_SRC;
           a.load();
-          var attachCbDone = false;
-          function finishAttach() {
-            if (attachCbDone) return;
-            attachCbDone = true;
-            a.removeEventListener("canplaythrough", finishAttach);
-            a.removeEventListener("canplay", finishAttach);
-            a.removeEventListener("error", onAttachError);
-            if (cb) cb();
-          }
-          function onAttachError() {
-            if (attachCbDone) return;
-            attachCbDone = true;
-            a.removeEventListener("canplaythrough", finishAttach);
-            a.removeEventListener("canplay", finishAttach);
-            a.removeEventListener("error", onAttachError);
-            emitStingEnd();
-          }
-          if (a.readyState >= 3) {
-            finishAttach();
-            return;
-          }
-          a.addEventListener("canplaythrough", finishAttach, { once: true });
-          a.addEventListener("canplay", finishAttach, { once: true });
-          a.addEventListener("error", onAttachError, { once: true });
-          window.setTimeout(function () {
-            if (a.readyState >= 2) finishAttach();
-          }, 8000);
+          a.addEventListener(
+            "error",
+            function () {
+              emitStingEnd();
+            },
+            { once: true }
+          );
+          /* Play as soon as a frame can start — do not wait for canplaythrough of the whole clip. */
+          if (cb) cb();
         }
 
         function beginPlayback() {
@@ -952,58 +948,52 @@
           attachAudioSource(tryPlay);
         }
 
-        function clearDeferTimer() {
-          if (deferTimer) {
-            window.clearTimeout(deferTimer);
-            deferTimer = null;
+        function afterFirstPaint(cb) {
+          var ran = false;
+          function run() {
+            if (ran) return;
+            ran = true;
+            cb();
           }
+          try {
+            if (performance.getEntriesByName("first-paint").length) {
+              run();
+              return;
+            }
+          } catch (e) {}
+          if (typeof PerformanceObserver === "function") {
+            try {
+              var po = new PerformanceObserver(function (list) {
+                var entries = list.getEntries();
+                for (var i = 0; i < entries.length; i++) {
+                  if (entries[i].name === "first-paint" || entries[i].name === "first-contentful-paint") {
+                    try {
+                      po.disconnect();
+                    } catch (e2) {}
+                    run();
+                    return;
+                  }
+                }
+              });
+              po.observe({ type: "paint", buffered: true });
+            } catch (e3) {}
+          }
+          requestAnimationFrame(function () {
+            requestAnimationFrame(run);
+          });
         }
 
         function schedulePlaybackStart(immediate) {
           if (!audioEnabled) return;
           if (immediate) {
-            clearDeferTimer();
             beginPlayback();
             return;
           }
           if (playbackQueued) return;
           playbackQueued = true;
-
-          function afterCriticalAssets() {
-            var ric = window.requestIdleCallback;
-            if (ric) {
-              ric(
-                function () {
-                  deferTimer = window.setTimeout(beginPlayback, 400);
-                },
-                { timeout: 2500 }
-              );
-            } else {
-              deferTimer = window.setTimeout(beginPlayback, 1200);
-            }
-          }
-
-          function whenPageReady() {
-            var criticalImgs = document.querySelectorAll(
-              'img[fetchpriority="high"], img[loading="eager"]'
-            );
-            var waiting = [];
-            criticalImgs.forEach(function (img) {
-              if (!img.complete) {
-                waiting.push(
-                  new Promise(function (resolve) {
-                    img.addEventListener("load", resolve, { once: true, passive: true });
-                    img.addEventListener("error", resolve, { once: true, passive: true });
-                  })
-                );
-              }
-            });
-            if (waiting.length) Promise.all(waiting).then(afterCriticalAssets);
-            else afterCriticalAssets();
-          }
-
-          if (document.readyState === "complete") whenPageReady();
-          else window.addEventListener("load", whenPageReady, { once: true });
+          /* Start the 74KB fetch now so it is ready when first paint commits. */
+          preloadAudio();
+          afterFirstPaint(beginPlayback);
         }
 
         function tryPlay() {
